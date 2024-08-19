@@ -1,16 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Card, Row, Col, Typography } from 'antd';
+import { Button, Form, Input, Card, Row, Col, Typography, notification } from 'antd';
 import { returnJWT } from '../api/auth';
+import { Navigate } from 'react-router-dom';
+import Cookies from 'js-cookie';
 
 const { Title } = Typography;
 
 function Login() {
-    const onFinish = (values) => {
+    const [redirectToProfile, setRedirectToProfile] = useState(false); // State for navigation
+
+    useEffect(() => {
+        const token = Cookies.get('token');
+        if (token) {
+            setRedirectToProfile(true);
+        }
+    }, []);
+
+    const onFinish = async (values) => {
         const { username, password } = values;
-        const data = returnJWT(username, password);
-        console.log(data);
+        try {
+            const token = await returnJWT(username, password);
+            if (token) {
+                // Store the token in a cookie
+                Cookies.set('token', token, { expires: 1 }); // Expires in 1 day
+                // Set state to trigger redirection to the profile page
+                setRedirectToProfile(true);
+            } else {
+                // Notify user of incorrect credentials
+                notification.error({
+                    message: 'Login Failed',
+                    description: 'Email or password is incorrect. Please try again.',
+                });
+            }
+        } catch (error) {
+            // Handle any other errors that might occur
+            notification.error({
+                message: 'Login Failed',
+                description: error.message || 'An unexpected error occurred. Please try again.',
+            });
+        }
     };
+
+    if (redirectToProfile) {
+        // Navigate to the profile page if login is successful
+        return <Navigate to="/profile" />;
+    }
 
     return (
         <Row
