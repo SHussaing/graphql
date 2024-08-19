@@ -1,62 +1,73 @@
 import React from 'react';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Checkbox, Form, Input, Flex } from 'antd';
+import { Button, Form, Input, Card, Row, Col, Typography } from 'antd';
+import { returnJWT } from '../api/auth';
 
+const { Title } = Typography;
 
-function login(){
+function Login() {
     const onFinish = (values) => {
-        console.log('Received values of form: ', values);
-      };
-      return (
-        <Form
-          name="login"
-          initialValues={{
-            remember: true,
-          }}
-          style={{
-            maxWidth: 360,
-          }}
-          onFinish={onFinish}
+        const { username, password } = values;
+        const data = returnJWT(username, password);
+        console.log(data);
+    };
+
+    return (
+        <Row
+            justify="center"
+            align="middle"
+            style={{ height: '100vh' }}
         >
-          <Form.Item
-            name="username"
-            rules={[
-              {
-                required: true,
-                message: 'Please input your Username!',
-              },
-            ]}
-          >
-            <Input prefix={<UserOutlined />} placeholder="Username" />
-          </Form.Item>
-          <Form.Item
-            name="password"
-            rules={[
-              {
-                required: true,
-                message: 'Please input your Password!',
-              },
-            ]}
-          >
-            <Input prefix={<LockOutlined />} type="password" placeholder="Password" />
-          </Form.Item>
-          <Form.Item>
-            <Flex justify="space-between" align="center">
-              <Form.Item name="remember" valuePropName="checked" noStyle>
-                <Checkbox>Remember me</Checkbox>
-              </Form.Item>
-              <a href="">Forgot password</a>
-            </Flex>
-          </Form.Item>
-    
-          <Form.Item>
-            <Button block type="primary" htmlType="submit">
-              Log in
-            </Button>
-            or <a href="">Register now!</a>
-          </Form.Item>
-        </Form>
-      );
+            <Col>
+                <Card
+                    style={{
+                        width: 360,
+                        textAlign: 'center',
+                        borderRadius: 8,
+                        border: '1px solid #d9d9d9',
+                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                    }}
+                    bodyStyle={{ padding: '20px 40px' }}
+                >
+                    <img
+                        src="logo192.png" 
+                        alt="Logo"
+                        style={{ width: '100px', marginBottom: '20px' }}
+                    />
+                    <Title level={3} style={{ marginBottom: '20px' }}>
+                        GraphQL
+                    </Title>
+                    <Form
+                        name="login"
+                        initialValues={{ remember: true }}
+                        onFinish={onFinish}
+                    >
+                        <Form.Item
+                            name="username"
+                            rules={[{ required: true, message: 'Please input your Email or Username!' }]}
+                        >
+                            <Input prefix={<UserOutlined />} placeholder="Email or Username" />
+                        </Form.Item>
+                        <Form.Item
+                            name="password"
+                            rules={[{ required: true, message: 'Please input your Password!' }]}
+                        >
+                            <Input
+                                prefix={<LockOutlined />}
+                                type="password"
+                                placeholder="Password"
+                            />
+                        </Form.Item>
+                        <Form.Item>
+                            <Button type="primary" htmlType="submit" block>
+                                Log in
+                            </Button>
+                        </Form.Item>
+                    </Form>
+                </Card>
+            </Col>
+        </Row>
+    );
 }
 
-export default login;
+export default Login;

@@ -8,8 +8,6 @@ function App() {
       <Routes>
         {/* Render the Login component when the path is "/" */}
         <Route path="/" element={<Login />} />
-        {/* Redirect from "/" to "/login" */}
-        <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>
   );
