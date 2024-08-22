@@ -62,7 +62,6 @@ function Login() {
                         border: '1px solid #d9d9d9',
                         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
                     }}
-                    bodyStyle={{ padding: '20px 40px' }}
                 >
                     <img
                         src="logo192.png" 

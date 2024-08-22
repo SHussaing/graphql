@@ -1,5 +1,7 @@
-API
+graphql API
 https://learn.reboot01.com/api/graphql-engine/v1/graphql
+
+auth API
 https://learn.reboot01.com/api/auth/signin
 
 

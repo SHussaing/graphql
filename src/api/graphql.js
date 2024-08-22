@@ -1,5 +1,4 @@
 import Cookies from 'js-cookie';
-import { jwtDecode } from 'jwt-decode'; // Correct import
 
 // Function to query the GraphQL API with a given query
 export async function queryApi(query) {
@@ -10,21 +9,9 @@ export async function queryApi(query) {
         return null;
     }
 
-    // Decode the URL-encoded JWT
-    token = decodeURIComponent(token);
-
     // Remove surrounding quotes if they exist
     if (token.startsWith('"') && token.endsWith('"')) {
         token = token.slice(1, -1);
-    }
-
-    // Decode the JWT to inspect its payload (optional, for logging or additional logic)
-    try {
-        const decodedToken = jwtDecode(token);
-        console.log('Decoded JWT:', decodedToken);
-    } catch (error) {
-        console.error('Failed to decode JWT:', error.message);
-        return null;
     }
 
     // Perform the fetch request to the GraphQL API
@@ -66,7 +53,7 @@ export async function getUserInfo() {
 
     if (userInfo && userInfo.user && userInfo.user.length > 0) {
         const { id, email, login } = userInfo.user[0];
-        return { id, email, login }; // Return an object with id, email, and login
+        return { id, email, login }; 
     } else {
         console.error('Failed to fetch user info');
         return null;
