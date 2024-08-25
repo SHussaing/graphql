@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { Button, Form, Input, Card, Row, Col, Typography, notification } from 'antd';
-import { returnJWT } from '../api/auth';
+import { saveJWTAndAuthenticate } from '../api/auth';
 import { Navigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 
@@ -19,25 +19,16 @@ function Login() {
 
     const onFinish = async (values) => {
         const { username, password } = values;
-        try {
-            const token = await returnJWT(username, password);
-            if (token) {
-                // Store the token in a cookie
-                Cookies.set('token', token, { expires: 1 }); // Expires in 1 day
-                // Set state to trigger redirection to the profile page
-                setRedirectToProfile(true);
-            } else {
-                // Notify user of incorrect credentials
-                notification.error({
-                    message: 'Login Failed',
-                    description: 'Email or password is incorrect. Please try again.',
-                });
-            }
-        } catch (error) {
-            // Handle any other errors that might occur
+        const authSucceeded = await saveJWTAndAuthenticate(username, password);
+        
+        if (authSucceeded) {
+            // Set state to trigger redirection to the profile page
+            setRedirectToProfile(true);
+        } else {
+            // Notify user of incorrect credentials or other errors
             notification.error({
                 message: 'Login Failed',
-                description: error.message || 'An unexpected error occurred. Please try again.',
+                description: 'Email or password is incorrect. Please try again.',
             });
         }
     };

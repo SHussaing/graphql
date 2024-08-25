@@ -3,7 +3,7 @@ import { Layout, Menu, Dropdown, Avatar, Typography, Row, Col, Card } from 'antd
 import { DownOutlined, UserOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import { getUserInfo } from '../api/graphql';
+import { getUserInfo, getMonthlyXP } from '../api/graphql';
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
@@ -16,6 +16,8 @@ const data = [
     { name: 'D', value: 90 },
     { name: 'E', value: 60 },
 ];
+
+getMonthlyXP()
 
 function Profile() {
     const [user, setUser] = useState(null); // State to hold the user object
@@ -78,63 +80,6 @@ function Profile() {
         </svg>
     );
 
-    // Function to render a simple pie chart
-    const renderPieChart = () => {
-        const radius = 50;
-        const total = data.reduce((acc, d) => acc + d.value, 0);
-        let cumulativeValue = 0;
-
-        return (
-            <svg width="100%" height="200">
-                {data.map((d, i) => {
-                    const valueRatio = d.value / total;
-                    const [startX, startY] = [
-                        radius * Math.cos(2 * Math.PI * cumulativeValue),
-                        radius * Math.sin(2 * Math.PI * cumulativeValue),
-                    ];
-                    cumulativeValue += valueRatio;
-                    const [endX, endY] = [
-                        radius * Math.cos(2 * Math.PI * cumulativeValue),
-                        radius * Math.sin(2 * Math.PI * cumulativeValue),
-                    ];
-                    const largeArcFlag = valueRatio > 0.5 ? 1 : 0;
-
-                    return (
-                        <path
-                            key={d.name}
-                            d={`M ${radius},${radius} L ${radius + startX},${radius - startY} A ${radius},${radius} 0 ${largeArcFlag},1 ${radius + endX},${radius - endY} Z`}
-                            fill={["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#8dd1e1"][i % 5]}
-                        />
-                    );
-                })}
-            </svg>
-        );
-    };
-
-    // Function to render a simple radar chart
-    const renderRadarChart = () => {
-        const radius = 50;
-        const angleSlice = (2 * Math.PI) / data.length;
-
-        return (
-            <svg width="100%" height="200">
-                <polygon
-                    fill="rgba(136, 132, 216, 0.5)"
-                    stroke="#8884d8"
-                    strokeWidth="2"
-                    points={data
-                        .map((d, i) => {
-                            const angle = i * angleSlice;
-                            const x = radius + radius * (d.value / 100) * Math.cos(angle);
-                            const y = radius - radius * (d.value / 100) * Math.sin(angle);
-                            return `${x},${y}`;
-                        })
-                        .join(" ")}
-                />
-            </svg>
-        );
-    };
-
     return (
         <Layout>
             <Header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -160,29 +105,16 @@ function Profile() {
                     </Col>
                     <Col xs={24} sm={12} lg={8}>
                         <Card title="User Information" bordered={false}>
-                            <p><strong>ID:</strong> {user ? user.id : 'Loading...'}</p>
                             <p><strong>Username:</strong> {user ? user.login : 'Loading...'}</p>
+                            <p><strong>Full Name: </strong> {user ? user.firstName : 'Loading...'} {user ? user.lastName : 'Loading...'}</p>
                             <p><strong>Email:</strong> {user ? user.email : 'Loading...'}</p>
+                            <p><strong>Phone Number:</strong> {user ? user.PhoneNumber : 'Loading...'}</p>
+                            <p><strong>Employment:</strong> {user ? user.employment : 'Loading...'}</p>
                         </Card>
                     </Col>
                     <Col xs={24} sm={12} lg={8}>
                         <Card title="Bar Chart" bordered={false}>
                             {renderBarChart()}
-                        </Card>
-                    </Col>
-                    <Col xs={24} sm={12} lg={8}>
-                        <Card title="Pie Chart" bordered={false}>
-                            {renderPieChart()}
-                        </Card>
-                    </Col>
-                    <Col xs={24} sm={12} lg={8}>
-                        <Card title="Radar Chart" bordered={false}>
-                            {renderRadarChart()}
-                        </Card>
-                    </Col>
-                    <Col xs={24} sm={12} lg={8}>
-                        <Card title="Placeholder Block" bordered={false}>
-                            {/* Placeholder for future content */}
                         </Card>
                     </Col>
                 </Row>

@@ -1,4 +1,5 @@
 import Cookies from 'js-cookie';
+import { getUserIdFromToken } from './auth';
 
 // Function to query the GraphQL API with a given query
 export async function queryApi(query) {
@@ -42,9 +43,9 @@ export async function getUserInfo() {
     const query = `
     query {
         user {
-            id
             email
             login
+            attrs
         }
     }
     `;
@@ -52,11 +53,62 @@ export async function getUserInfo() {
     const userInfo = await queryApi(query);
 
     if (userInfo && userInfo.user && userInfo.user.length > 0) {
-        const { id, email, login } = userInfo.user[0];
-        return { id, email, login }; 
+        const { email, login, attrs } = userInfo.user[0];
+        const { firstName, lastName, PhoneNumber, employment } = attrs;
+
+        return { firstName, lastName, PhoneNumber, employment, email, login }; 
     } else {
         console.error('Failed to fetch user info');
         return null;
     }
+}
+
+// Function to get the monthly XP grouped by year and month
+export async function getMonthlyXP() {
+    const userId = getUserIdFromToken();
+
+    if (!userId) {
+        console.error('No user ID found. Unable to fetch XP.');
+        return null;
+    }
+
+    const query = `
+    query {
+        transaction(where: { userId: { _eq: ${userId} }, type: { _eq: "xp" } }, order_by: { createdAt: asc }) {
+            amount
+            createdAt
+            userId
+            type
+            eventId
+            path
+        }
+    }
+    `;
+
+    const transactions = await queryApi(query);
+
+    if (!transactions || !transactions.transaction) {
+        console.error('Failed to fetch transactions');
+        return null;
+    }
+
+    console.log("Raw transactions data:", transactions);
+
+    // Group transactions by Year and Month
+    const monthlyXP = transactions.transaction.reduce((acc, curr) => {
+        const date = new Date(curr.createdAt);
+        const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+        if (!acc[yearMonth]) {
+            acc[yearMonth] = 0;
+        }
+
+        acc[yearMonth] += curr.amount;
+        return acc;
+    }, {});
+
+    console.log("Processed monthly XP data:", monthlyXP);
+
+    return monthlyXP;
 }
 
