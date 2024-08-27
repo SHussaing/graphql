@@ -94,8 +94,22 @@ export async function getMonthlyXP() {
 
     console.log("Raw transactions data:", transactions);
 
-    // Group transactions by Year and Month
-    const monthlyXP = transactions.transaction.reduce((acc, curr) => {
+    // Extract unique eventIds and find the second lowest
+    const uniqueEventIds = [...new Set(transactions.transaction.map(t => t.eventId))].sort((a, b) => a - b);
+    
+    if (uniqueEventIds.length < 2) {
+        console.error('Not enough unique eventIds to determine the second lowest.');
+        return null;
+    }
+
+    const secondLowestEventId = uniqueEventIds[1];
+
+    // Filter transactions by the second-lowest eventId
+    const filteredTransactions = transactions.transaction.filter(t => t.eventId === secondLowestEventId);
+
+    // Group transactions by Year and Month, carrying over XP from previous months
+    let cumulativeXP = 0;
+    const monthlyXP = filteredTransactions.reduce((acc, curr) => {
         const date = new Date(curr.createdAt);
         const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
@@ -103,12 +117,47 @@ export async function getMonthlyXP() {
             acc[yearMonth] = 0;
         }
 
-        acc[yearMonth] += curr.amount;
+        cumulativeXP += curr.amount;
+        acc[yearMonth] = cumulativeXP / 1000; // Convert cumulative XP to KB
+
         return acc;
     }, {});
 
-    console.log("Processed monthly XP data:", monthlyXP);
+    console.log("Processed monthly XP data in KB:", monthlyXP);
 
     return monthlyXP;
+}
+
+
+export async function getAudits() {
+    const userId = getUserIdFromToken();
+
+    if (!userId) {
+        console.error('No user ID found. Unable to fetch audits.');
+        return [];
+    }
+
+    const query = `
+    query {
+        audit(where: { auditorId: { _eq: ${userId} } }) {
+            grade
+        }
+    }
+    `;
+
+    const audits = await queryApi(query);
+
+    // Update this condition to match the actual structure of the response
+    if (!audits || !audits.audit || !Array.isArray(audits.audit)) {
+        console.error('Failed to fetch audits or audits data is not an array');
+        return [];
+    }
+
+    // Process the grades into "pass" or "fail"
+    const result = audits.audit
+        .filter(audit => audit.grade !== null) // Exclude null grades
+        .map(audit => (audit.grade >= 1 ? "pass" : "fail"));
+
+    return result;
 }
 
