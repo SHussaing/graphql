@@ -3,7 +3,7 @@ import { Layout, Menu, Dropdown, Avatar, Typography, Row, Col, Card } from 'antd
 import { DownOutlined, UserOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import { getUserInfo, getMonthlyXP, getAudits } from '../api/graphql';
+import { getUserInfo, getMonthlyXP, getAudits, getTotalXP } from '../api/graphql';
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
@@ -14,7 +14,9 @@ function Profile() {
     const [auditResults, setAuditResults] = useState([]);
     const navigate = useNavigate();
 
+
     useEffect(() => {
+        getTotalXP()
         async function fetchData() {
             const userInfo = await getUserInfo();
             if (userInfo) {

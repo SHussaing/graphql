@@ -92,7 +92,7 @@ export async function getMonthlyXP() {
         return null;
     }
 
-    console.log("Raw transactions data:", transactions);
+    // console.log("Raw transactions data:", transactions);
 
     // Extract unique eventIds and find the second lowest
     const uniqueEventIds = [...new Set(transactions.transaction.map(t => t.eventId))].sort((a, b) => a - b);
@@ -123,7 +123,7 @@ export async function getMonthlyXP() {
         return acc;
     }, {});
 
-    console.log("Processed monthly XP data in KB:", monthlyXP);
+    // console.log("Processed monthly XP data in KB:", monthlyXP);
 
     return monthlyXP;
 }
@@ -161,3 +161,25 @@ export async function getAudits() {
     return result;
 }
 
+
+export async function getTotalXP() {
+    const userId = getUserIdFromToken();
+
+    if (!userId) {
+        console.error('No user ID found. Unable to fetch XP.');
+        return null;
+    }
+
+    const query = `
+    query {
+      transaction(where: { userId: { _eq: ${userId} }, type: { _eq: "xp" }, eventId: { _eq: 72, } }) {
+        amount
+      }
+    }
+  `;
+
+
+  const totalXP = await queryApi(query);
+  console.log("Total XP", totalXP);
+
+}
