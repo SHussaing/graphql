@@ -92,8 +92,6 @@ export async function getMonthlyXP() {
         return null;
     }
 
-    // console.log("Raw transactions data:", transactions);
-
     // Extract unique eventIds and find the second lowest
     const uniqueEventIds = [...new Set(transactions.transaction.map(t => t.eventId))].sort((a, b) => a - b);
     
@@ -107,11 +105,33 @@ export async function getMonthlyXP() {
     // Filter transactions by the second-lowest eventId
     const filteredTransactions = transactions.transaction.filter(t => t.eventId === secondLowestEventId);
 
+    // Determine the range of months from the first transaction to the current month
+    const firstTransactionDate = new Date(filteredTransactions[0]?.createdAt);
+    const currentDate = new Date();
+
+    const startYear = firstTransactionDate.getFullYear();
+    const startMonth = firstTransactionDate.getMonth(); // 0-indexed
+    const endYear = currentDate.getFullYear();
+    const endMonth = currentDate.getMonth(); // 0-indexed
+
+    // Function to create a string for year-month in 'YYYY-MM' format
+    const formatYearMonth = (year, month) => `${year}-${String(month + 1).padStart(2, '0')}`;
+
+    // Create a list of all months from start to current month
+    const allMonths = [];
+    for (let year = startYear; year <= endYear; year++) {
+        const monthStart = year === startYear ? startMonth : 0;
+        const monthEnd = year === endYear ? endMonth : 11;
+        for (let month = monthStart; month <= monthEnd; month++) {
+            allMonths.push(formatYearMonth(year, month));
+        }
+    }
+
     // Group transactions by Year and Month, carrying over XP from previous months
     let cumulativeXP = 0;
     const monthlyXP = filteredTransactions.reduce((acc, curr) => {
         const date = new Date(curr.createdAt);
-        const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const yearMonth = formatYearMonth(date.getFullYear(), date.getMonth());
 
         if (!acc[yearMonth]) {
             acc[yearMonth] = 0;
@@ -123,9 +143,19 @@ export async function getMonthlyXP() {
         return acc;
     }, {});
 
-    // console.log("Processed monthly XP data in KB:", monthlyXP);
+    // Ensure all months are present and carry over the cumulative XP from previous months
+    let lastXP = 0;
+    const fullMonthlyXP = allMonths.reduce((acc, month) => {
+        if (monthlyXP[month]) {
+            lastXP = monthlyXP[month]; // Update cumulative XP if available
+        }
+        acc[month] = lastXP; // Carry forward the last available XP value
+        return acc;
+    }, {});
 
-    return monthlyXP;
+    console.log(fullMonthlyXP);
+    // Return the full list of months with their respective XP values
+    return fullMonthlyXP;
 }
 
 
