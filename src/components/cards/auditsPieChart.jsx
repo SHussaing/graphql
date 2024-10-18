@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from 'antd';
 import { PieChart, Pie, Cell, Legend, Tooltip } from 'recharts';
 import { getAudits } from '../../api/graphql';
 
-const AuditsDoneCard = () => {
+const AuditsPieChart = () => {
     const [auditData, setAuditData] = useState({ pass: 0, fail: 0 });
 
     useEffect(() => {
@@ -11,7 +10,6 @@ const AuditsDoneCard = () => {
             const audits = await getAudits();
 
             if (audits) {
-                // Count pass and fail
                 const passCount = audits.filter(audit => audit === "pass").length;
                 const failCount = audits.filter(audit => audit === "fail").length;
 
@@ -30,15 +28,15 @@ const AuditsDoneCard = () => {
     const COLORS = ['#4CAF50', '#F44336'];
 
     return (
-        <Card title="Audits Done" bordered={false}>
-            <PieChart width={400} height={400}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <PieChart width={350} height={315}>
                 <Pie
                     data={data}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={150}
+                    outerRadius={120}
                     fill="#8884d8"
                     label
                 >
@@ -46,11 +44,11 @@ const AuditsDoneCard = () => {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                 </Pie>
-                <Legend />
+                <Legend verticalAlign="bottom" height={36} />
                 <Tooltip />
             </PieChart>
-        </Card>
+        </div>
     );
 };
 
-export default AuditsDoneCard;
+export default AuditsPieChart;

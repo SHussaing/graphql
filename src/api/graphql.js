@@ -45,6 +45,7 @@ export async function getUserInfo() {
         user {
             email
             login
+            createdAt
             attrs
         }
     }
@@ -53,10 +54,10 @@ export async function getUserInfo() {
     const userInfo = await queryApi(query);
 
     if (userInfo && userInfo.user && userInfo.user.length > 0) {
-        const { email, login, attrs } = userInfo.user[0];
-        const { firstName, lastName, PhoneNumber, employment } = attrs;
+        const { email, login, createdAt, attrs } = userInfo.user[0];
+        const { firstName, lastName, PhoneNumber, employment, Degree } = attrs;
 
-        return { firstName, lastName, PhoneNumber, employment, email, login }; 
+        return { firstName, lastName, PhoneNumber, employment, Degree, email, login, createdAt}; 
     } else {
         console.error('Failed to fetch user info');
         return null;
@@ -153,7 +154,6 @@ export async function getMonthlyXP() {
         return acc;
     }, {});
 
-    console.log(fullMonthlyXP);
     // Return the full list of months with their respective XP values
     return fullMonthlyXP;
 }
@@ -192,24 +192,64 @@ export async function getAudits() {
 }
 
 
-export async function getTotalXP() {
-    const userId = getUserIdFromToken();
-
-    if (!userId) {
-        console.error('No user ID found. Unable to fetch XP.');
-        return null;
-    }
-
+export async function getSkills() {
     const query = `
     query {
-      transaction(where: { userId: { _eq: ${userId} }, type: { _eq: "xp" }, eventId: { _eq: 72, } }) {
+      transaction(where: { 
+        type: { _in: ["skill_go", "skill_html", "skill_docker", "skill_js", "skill_css", "skill_sql", "skill_unix"] }
+      }) {
+        type
         amount
       }
     }
   `;
 
+    try {
+        const skillsData = await queryApi(query);
 
-  const totalXP = await queryApi(query);
-  console.log("Total XP", totalXP);
+        // Check if the response has the expected structure
+        if (!skillsData || !skillsData.transaction || !Array.isArray(skillsData.transaction)) {
+            console.error('Invalid data format or no transactions returned:', skillsData);
+            return null;
+        }
+
+        // Define a mapping of skill types to their proper names
+        const skillNameMapping = {
+            skill_go: "Go",
+            skill_html: "HTML",
+            skill_docker: "Docker",
+            skill_js: "JavaScript",
+            skill_css: "CSS",
+            skill_sql: "SQL",
+            skill_unix: "Unix"
+        };
+
+        // Group transactions by type and sum the amounts
+        const groupedSkills = skillsData.transaction.reduce((acc, transaction) => {
+            const friendlyName = skillNameMapping[transaction.type] || transaction.type;
+
+            if (!acc[friendlyName]) {
+                acc[friendlyName] = 0;
+            }
+            acc[friendlyName] += transaction.amount;
+            return acc;
+        }, {});
+
+        // Convert the grouped object into an array
+        const groupedArray = Object.keys(groupedSkills).map(type => ({
+            type,
+            totalAmount: groupedSkills[type]
+        }));
+
+        console.log("Grouped Skills Data with Proper Names:", groupedArray);
+        return groupedArray;
+    } catch (error) {
+        console.error('Error fetching skills data:', error);
+        return null;
+    }
 
 }
+
+
+
+
