@@ -6,9 +6,11 @@ import PrivateRoute from './components/privateRoute';
 import { ConfigProvider } from 'antd';
 
 function App() {
+    const basename = process.env.PUBLIC_URL || '';
+
     return (
         <ConfigProvider theme={{ token: { colorPrimary: '#3687d9' } }}> 
-        <Router>
+        <Router basename={basename}>
             <Routes>
                 <Route path="/" element={<Login />} />
                 <Route 

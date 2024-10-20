@@ -17,18 +17,17 @@ export async function saveJWTAndAuthenticate(username, password) {
             throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
         }
 
-        const token = await response.text(); // Use text() if the token is returned as a plain string
+        const token = await response.text(); 
         if (token) {
             // Store the token in a cookie
             Cookies.set('token', token, { expires: 1 }); // Expires in 1 day
-            getUserIdFromToken(); // Decode the token to get the userId
-            return true; // Return true to indicate successful authentication
+            return true; 
         } else {
-            return false; // Return false to indicate failed authentication
+            return false; 
         }
     } catch (error) {
         console.error('Error:', error);
-        return false; // Return false to indicate an error occurred
+        return false; 
     }
 }
 

@@ -1,6 +1,7 @@
 import Cookies from 'js-cookie';
 import { getUserIdFromToken } from './auth';
 
+let eventID;
 // Function to query the GraphQL API with a given query
 export async function queryApi(query) {
     let token = Cookies.get('token'); // Retrieve the JWT from cookies
@@ -63,6 +64,55 @@ export async function getUserInfo() {
         return null;
     }
 }
+
+export async function getTotalXP() {
+    const userId = getUserIdFromToken();
+
+    if (!userId) {
+        console.error('No user ID found. Unable to fetch XP.');
+        return null;
+    }
+
+    const query = `
+    query {
+        transaction(where: { userId: { _eq: ${userId} }, type: { _eq: "xp" } }, order_by: { eventId: asc }) {
+            amount
+            eventId
+        }
+    }
+    `;
+
+    const transactions = await queryApi(query);
+
+    if (!transactions || !transactions.transaction) {
+        console.error('Failed to fetch transactions');
+        return null;
+    }
+
+    // Extract unique eventIds and sort them to find the second lowest
+    const uniqueEventIds = [...new Set(transactions.transaction.map(t => t.eventId))].sort((a, b) => a - b);
+    
+    if (uniqueEventIds.length < 2) {
+        console.error('Not enough unique eventIds to determine the second lowest.');
+        return null;
+    }
+
+    // Get the 2nd lowest eventId
+    const secondLowestEventId = uniqueEventIds[1];
+
+    // Filter transactions based on the second lowest eventId
+    const filteredTransactions = transactions.transaction.filter(t => t.eventId === secondLowestEventId);
+
+    // Sum up all the amounts from the filtered transactions
+    const totalXP = filteredTransactions.reduce((acc, curr) => acc + curr.amount, 0);
+
+    console.log('Total XP:', totalXP);
+
+    // Return the total XP
+    return totalXP;
+}
+
+
 
 // Function to get the monthly XP grouped by year and month
 export async function getMonthlyXP() {
@@ -249,6 +299,8 @@ export async function getSkills() {
     }
 
 }
+
+
 
 
 

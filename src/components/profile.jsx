@@ -6,11 +6,13 @@ import UserInfo from './cards/userInfo';
 import ExpLineChart from './cards/expLineChart';
 import AuditsPieChart from './cards/auditsPieChart';
 import SkillsBarChart  from './cards/skillsBarChart';
+import { getTotalXP } from '../api/graphql';
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
 
 function Profile() {
+    getTotalXP();
     const navigate = useNavigate();
     const handleLogout = () => {
         Cookies.remove('token');
