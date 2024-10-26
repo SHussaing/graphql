@@ -8,7 +8,7 @@ import Cookies from 'js-cookie';
 const { Title } = Typography;
 
 function Login() {
-    const [redirectToProfile, setRedirectToProfile] = useState(false); // State for navigation
+    const [redirectToProfile, setRedirectToProfile] = useState(false); 
 
     useEffect(() => {
         const token = Cookies.get('token');
@@ -34,7 +34,6 @@ function Login() {
     };
 
     if (redirectToProfile) {
-        // Navigate to the profile page if login is successful
         return <Navigate to="/profile" />;
     }
 
