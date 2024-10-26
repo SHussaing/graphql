@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getAuditRatio } from '../../api/graphql';
+import { Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts';
 
 const AuditRatioLine = () => {
     const [auditsDone, setAuditsDone] = useState(null);
@@ -29,81 +30,55 @@ const AuditRatioLine = () => {
         return 'N/A';
     };
 
+    const getRatioColor = () => {
+        const ratio = parseFloat(calculateRatio());
+        if (ratio >= 1.2) {
+            return '#52c41a'; // Green for high ratio
+        } else if (ratio >= 0.8 && ratio <= 1.1) {
+            return '#faad14'; // Yellow for medium ratio
+        } else {
+            return '#ff4d4f'; // Red for low ratio
+        }
+    };
+
     if (loading) {
-        return <p style={{ textAlign: 'center', fontSize: '16px' }}>Loading...</p>;
+        return (
+            <p style={{ textAlign: 'center', fontSize: '16px' }}>
+                Loading...
+            </p>
+        );
     }
 
-    // Calculate the total and percentages
-    const total = auditsDone + auditsReceived;
-    const donePercentage = ((auditsDone / total) * 100).toFixed(2);
-    const receivedPercentage = ((auditsReceived / total) * 100).toFixed(2);
+    // Prepare data for Recharts
+    const data = [
+        {
+            name: 'Audits',
+            Done: (auditsDone / 1000).toFixed(2), // Convert to KB
+            Received: (auditsReceived / 1000).toFixed(2), // Convert to KB
+        },
+    ];
 
     return (
-        <div style={{ textAlign: 'center', margin: '20px 0' }}>
-            <div style={{
-                display: 'flex',
-                height: '30px',
-                width: '100%',
-                maxWidth: '500px',
-                margin: '0 auto',
-                borderRadius: '5px',
-                overflow: 'hidden',
-                border: '1px solid #ccc',
-                position: 'relative'
-            }}>
-                <div
-                    className="hover-section"
-                    style={{
-                        width: `${donePercentage}%`,
-                        backgroundColor: '#52c41a',
-                        transition: 'width 0.5s ease',
-                        position: 'relative',
-                    }}
-                    data-tooltip={`Audits Done: ${auditsDone}`}
-                ></div>
-                <div
-                    className="hover-section"
-                    style={{
-                        width: `${receivedPercentage}%`,
-                        backgroundColor: '#fa541c',
-                        transition: 'width 0.5s ease',
-                        position: 'relative',
-                    }}
-                    data-tooltip={`Audits Received: ${auditsReceived}`}
-                ></div>
-            </div>
-            <p style={{ marginTop: '10px', fontSize: '16px' }}>
-                Done:Received Ratio: {calculateRatio()}
+        <div style={{ textAlign: 'center', marginTop: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '200px' }}>
+            <p style={{ marginBottom: '10px', fontSize: '16px', color: getRatioColor() }}>
+                Audit Ratio: {calculateRatio()}
             </p>
-
-            {/* Add styling for the tooltip */}
-            <style>{`
-                .hover-section {
-                    position: relative;
-                }
-
-                .hover-section::before {
-                    content: attr(data-tooltip);
-                    position: absolute;
-                    background-color: rgba(0, 0, 0, 0.7);
-                    color: white;
-                    padding: 5px;
-                    border-radius: 3px;
-                    font-size: 12px;
-                    visibility: hidden;
-                    opacity: 0;
-                    transition: opacity 0.3s ease;
-                    white-space: nowrap;
-                    transform: translate(-50%, -100%);
-                    bottom: 100%;
-                    left: 50%;
-                }
-
-                .hover-section:hover::before {
-                    visibility: visible;
-                    opacity: 1;
-                }
-            `}</style>
+            <ResponsiveContainer width="100%" height={50}>
+                <BarChart
+                    data={data}
+                    layout="vertical"
+                    barCategoryGap={0}
+                >
+                    <XAxis type="number" hide />
+                    <YAxis type="category" dataKey="name" hide />
+                    <Tooltip 
+                        cursor={{ fill: 'transparent' }}
+                        formatter={(value, name) => [`${value} KB`, name]}
+                    />
+                    <Bar dataKey="Done" stackId="a" fill="#1890ff" />
+                    <Bar dataKey="Received" stackId="a" fill="#ffa940" />
+                </BarChart>
+            </ResponsiveContainer>
         </div>
     );
 };

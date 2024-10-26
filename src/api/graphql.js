@@ -359,22 +359,11 @@ export async function getAuditRatio() {
         return null;
     }
 
-    // Fetch the event ID using getEventIdAndLevel
-    const eventData = await getEventIdAndLevel();
-    
-    if (!eventData || eventData.eventId === undefined) {
-        console.error('Failed to fetch event ID.');
-        return null;
-    }
-
-    const { eventId } = eventData;
-
     // Construct the GraphQL query
     const query = `
     query {
         transaction(where: { 
             userId: { _eq: "${userId}" },
-            eventId: { _eq: ${eventId} },
             type: { _in: ["up", "down"] }
         }) {
             amount
