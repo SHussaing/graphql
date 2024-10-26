@@ -55,7 +55,7 @@ function Login() {
                     }}
                 >
                     <img
-                        src="logo192.png" 
+                        src={`${process.env.PUBLIC_URL}/logo192.png`}
                         alt="Logo"
                         style={{ width: '100px', marginBottom: '20px' }}
                     />

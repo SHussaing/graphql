@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getUserInfo } from '../../api/graphql';
 
-const UserInfo = () => {
+const UserInfoDisplay = () => {
     const [user, setUser] = useState(null);
 
     useEffect(() => {
@@ -30,4 +30,4 @@ const UserInfo = () => {
     );
 };
 
-export default UserInfo;
+export default UserInfoDisplay;

@@ -2,17 +2,17 @@ import { Layout, Dropdown, Avatar, Typography, Row, Col, Card } from 'antd';
 import { UserOutlined, DownOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import UserInfo from './cards/userInfo';
+import UserInfoDisplay from './cards/userInfoDisplay';
 import ExpLineChart from './cards/expLineChart';
 import AuditsPieChart from './cards/auditsPieChart';
 import SkillsBarChart  from './cards/skillsBarChart';
-import { getTotalXP } from '../api/graphql';
+import UserXPAndLevelCard from './cards/userLevelDisplay';
+import AuditRatioDisplay from './cards/auditRatioDisplay';
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
 
 function Profile() {
-    getTotalXP();
     const navigate = useNavigate();
     const handleLogout = () => {
         Cookies.remove('token');
@@ -30,7 +30,7 @@ function Profile() {
         <Layout>
             <Header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <img src="logo192.png" alt="Logo" style={{ width: '40px', marginRight: '16px' }} />
+                    <img src={`${process.env.PUBLIC_URL}/logo192.png`} alt="Logo" style={{ width: '40px', marginRight: '16px' }} />
                     <Text style={{ color: 'white', fontSize: '24px', fontWeight: 'bold' }}>GraphQL</Text>
                 </div>
                 <Dropdown menu={{ items: menuItems }} trigger={['click']}>
@@ -44,17 +44,17 @@ function Profile() {
                 <Row gutter={[16, 16]} justify="center">
                     <Col xs={24} sm={12} lg={8}>
                         <Card title="User Information" bordered={false} style={{ height: '385px' }}>
-                            <UserInfo />
+                            <UserInfoDisplay />
                         </Card>
                     </Col>
                     <Col xs={24} sm={12} lg={8}>
-                        <Card title="User Information" bordered={false} style={{ height: '385px' }}>
-                            <UserInfo />
+                        <Card title="User Level & EXP" bordered={false} style={{ height: '385px' }}>
+                            <UserXPAndLevelCard />
                         </Card>
                     </Col>
                     <Col xs={24} sm={12} lg={8}>
-                        <Card title="User Information" bordered={false} style={{ height: '385px' }}>
-                            <UserInfo />
+                        <Card title="Audit Ratio" bordered={false} style={{ height: '385px' }}>
+                            <AuditRatioDisplay />
                         </Card>
                     </Col>
                     <Col xs={24} sm={12} lg={8}>

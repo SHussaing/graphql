@@ -1,7 +1,7 @@
 import Cookies from 'js-cookie';
 import { getUserIdFromToken } from './auth';
 
-let eventID;
+
 // Function to query the GraphQL API with a given query
 export async function queryApi(query) {
     let token = Cookies.get('token'); // Retrieve the JWT from cookies
@@ -39,6 +39,51 @@ export async function queryApi(query) {
     }
 }
 
+export async function getEventIdAndLevel() {
+    const userId = getUserIdFromToken();
+
+    if (!userId) {
+        console.error('No user ID found. Unable to fetch event ID.');
+        return null;
+    }
+
+    const query = `
+    {
+        event_user(where: { 
+            _and: [
+                { userId: { _eq: ${userId} } },
+                { level: { _neq: 0 } }
+            ]
+        }, order_by: { eventId: asc }) {
+            eventId
+            level
+        }
+    }
+    `;
+
+    try {
+        const response = await queryApi(query);
+
+        // Check if the response is valid and contains at least one event_user
+        if (!response || !response.event_user || response.event_user.length === 0) {
+            console.error('No eventId found for the specified criteria.');
+            return null;
+        }
+
+        // Get the 2nd eventId and the corresponding level from the response
+        const eventId = parseInt(response.event_user[1].eventId, 10);
+        const level = response.event_user[1].level;
+
+        return { eventId, level };
+
+    } catch (error) {
+        console.error('Error fetching the event ID and level:', error);
+        return null;
+    }
+}
+
+
+
 // Function to get user information using the queryApi function
 export async function getUserInfo() {
     const query = `
@@ -65,7 +110,7 @@ export async function getUserInfo() {
     }
 }
 
-export async function getTotalXP() {
+export async function getTotalXPWithLevel() {
     const userId = getUserIdFromToken();
 
     if (!userId) {
@@ -73,44 +118,51 @@ export async function getTotalXP() {
         return null;
     }
 
+    // Fetch the event ID and level dynamically using getEventIdAndLevel
+    const eventData = await getEventIdAndLevel();
+
+    if (!eventData) {
+        console.error('Failed to fetch event ID and level.');
+        return null;
+    }
+
+    const { eventId, level } = eventData;
+
     const query = `
     query {
-        transaction(where: { userId: { _eq: ${userId} }, type: { _eq: "xp" } }, order_by: { eventId: asc }) {
+        transaction(where: { 
+            userId: { _eq: "${userId}" }, 
+            type: { _eq: "xp" },
+            eventId: { _eq: "${eventId}" }
+        }) {
             amount
-            eventId
         }
     }
     `;
 
-    const transactions = await queryApi(query);
+    try {
+        const transactions = await queryApi(query);
 
-    if (!transactions || !transactions.transaction) {
-        console.error('Failed to fetch transactions');
+        if (!transactions || !transactions.transaction) {
+            console.error('Failed to fetch transactions');
+            return null;
+        }
+
+        // Sum up all the amounts from the transactions filtered by the eventId
+        const totalXP = transactions.transaction.reduce((acc, curr) => acc + curr.amount, 0);
+
+        // Return an object containing both total XP and level
+        return {
+            xp: totalXP,
+            level: level
+        };
+
+    } catch (error) {
+        console.error('Error fetching transactions:', error);
         return null;
     }
-
-    // Extract unique eventIds and sort them to find the second lowest
-    const uniqueEventIds = [...new Set(transactions.transaction.map(t => t.eventId))].sort((a, b) => a - b);
-    
-    if (uniqueEventIds.length < 2) {
-        console.error('Not enough unique eventIds to determine the second lowest.');
-        return null;
-    }
-
-    // Get the 2nd lowest eventId
-    const secondLowestEventId = uniqueEventIds[1];
-
-    // Filter transactions based on the second lowest eventId
-    const filteredTransactions = transactions.transaction.filter(t => t.eventId === secondLowestEventId);
-
-    // Sum up all the amounts from the filtered transactions
-    const totalXP = filteredTransactions.reduce((acc, curr) => acc + curr.amount, 0);
-
-    console.log('Total XP:', totalXP);
-
-    // Return the total XP
-    return totalXP;
 }
+
 
 
 
@@ -123,9 +175,20 @@ export async function getMonthlyXP() {
         return null;
     }
 
+    // Fetch the event ID using getEventIdAndLevel
+    const eventData = await getEventIdAndLevel();
+    
+    if (!eventData || eventData.eventId === undefined) {
+        console.error('Failed to fetch event ID.');
+        return null;
+    }
+
+    const { eventId } = eventData;
+
+    // Modify the query to include the eventId directly
     const query = `
     query {
-        transaction(where: { userId: { _eq: ${userId} }, type: { _eq: "xp" } }, order_by: { createdAt: asc }) {
+        transaction(where: { userId: { _eq: "${userId}" }, type: { _eq: "xp" }, eventId: { _eq: ${eventId} } }, order_by: { createdAt: asc }) {
             amount
             createdAt
             userId
@@ -143,21 +206,8 @@ export async function getMonthlyXP() {
         return null;
     }
 
-    // Extract unique eventIds and find the second lowest
-    const uniqueEventIds = [...new Set(transactions.transaction.map(t => t.eventId))].sort((a, b) => a - b);
-    
-    if (uniqueEventIds.length < 2) {
-        console.error('Not enough unique eventIds to determine the second lowest.');
-        return null;
-    }
-
-    const secondLowestEventId = uniqueEventIds[1];
-
-    // Filter transactions by the second-lowest eventId
-    const filteredTransactions = transactions.transaction.filter(t => t.eventId === secondLowestEventId);
-
     // Determine the range of months from the first transaction to the current month
-    const firstTransactionDate = new Date(filteredTransactions[0]?.createdAt);
+    const firstTransactionDate = new Date(transactions.transaction[0]?.createdAt);
     const currentDate = new Date();
 
     const startYear = firstTransactionDate.getFullYear();
@@ -180,7 +230,7 @@ export async function getMonthlyXP() {
 
     // Group transactions by Year and Month, carrying over XP from previous months
     let cumulativeXP = 0;
-    const monthlyXP = filteredTransactions.reduce((acc, curr) => {
+    const monthlyXP = transactions.transaction.reduce((acc, curr) => {
         const date = new Date(curr.createdAt);
         const yearMonth = formatYearMonth(date.getFullYear(), date.getMonth());
 
@@ -291,7 +341,6 @@ export async function getSkills() {
             totalAmount: groupedSkills[type]
         }));
 
-        console.log("Grouped Skills Data with Proper Names:", groupedArray);
         return groupedArray;
     } catch (error) {
         console.error('Error fetching skills data:', error);
@@ -300,6 +349,71 @@ export async function getSkills() {
 
 }
 
+
+// Function to get the audit ratio by summing up the 'up' and 'down' transactions
+export async function getAuditRatio() {
+    const userId = getUserIdFromToken();
+
+    if (!userId) {
+        console.error('No user ID found. Unable to fetch transactions.');
+        return null;
+    }
+
+    // Fetch the event ID using getEventIdAndLevel
+    const eventData = await getEventIdAndLevel();
+    
+    if (!eventData || eventData.eventId === undefined) {
+        console.error('Failed to fetch event ID.');
+        return null;
+    }
+
+    const { eventId } = eventData;
+
+    // Construct the GraphQL query
+    const query = `
+    query {
+        transaction(where: { 
+            userId: { _eq: "${userId}" },
+            eventId: { _eq: ${eventId} },
+            type: { _in: ["up", "down"] }
+        }) {
+            amount
+            type
+        }
+    }
+    `;
+
+    try {
+        const transactions = await queryApi(query);
+
+        if (!transactions || !transactions.transaction) {
+            console.error('Failed to fetch transactions');
+            return null;
+        }
+
+        // Sum up the amounts for 'up' and 'down' transactions
+        let upTotal = 0;
+        let downTotal = 0;
+
+        transactions.transaction.forEach((transaction) => {
+            if (transaction.type === 'up') {
+                upTotal += transaction.amount;
+            } else if (transaction.type === 'down') {
+                downTotal += transaction.amount;
+            }
+        });
+        console.log(upTotal, downTotal);
+        // Return the totals as an object
+        return {
+            upTotal,
+            downTotal,
+        };
+        
+    } catch (error) {
+        console.error('Error fetching transactions:', error);
+        return null;
+    }
+}
 
 
 
