@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Typography } from 'antd';
-import { getTotalXPWithLevel } from '../../api/graphql';
+import { getTotalLevel, getMonthlyXP } from '../../api/graphql';
 
 const { Title, Text } = Typography;
 
@@ -12,13 +12,30 @@ const UserXPAndLevelDisplay = () => {
     useEffect(() => {
         const fetchUserXPAndLevel = async () => {
             setLoading(true);
-            const result = await getTotalXPWithLevel();
-            if (result !== null && result.level !== undefined && result.xp !== undefined) {
-                setUserXP((result.xp / 1000).toFixed(2));
-                setUserLevel(result.level);
-            } else {
-                console.error('Invalid data structure returned:', result);
+
+            try {
+                // Fetch total level
+                const level = await getTotalLevel();
+                if (level !== null) {
+                    setUserLevel(level);
+                } else {
+                    console.error('Failed to fetch user level.');
+                }
+
+                // Fetch monthly XP and get the last month's XP as total XP
+                const monthlyXP = await getMonthlyXP();
+                if (monthlyXP !== null) {
+                    const months = Object.keys(monthlyXP);
+                    const lastMonth = months[months.length - 1];
+                    setUserXP((monthlyXP[lastMonth]).toFixed(2));
+                } else {
+                    console.error('Failed to fetch user XP.');
+                }
+
+            } catch (error) {
+                console.error('Error fetching user XP and level:', error);
             }
+
             setLoading(false);
         };
 

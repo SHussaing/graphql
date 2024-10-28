@@ -39,23 +39,21 @@ export async function queryApi(query) {
     }
 }
 
-export async function getEventIdAndLevel() {
+export async function getTotalLevel() {
     const userId = getUserIdFromToken();
 
     if (!userId) {
-        console.error('No user ID found. Unable to fetch event ID.');
+        console.error('No user ID found. Unable to fetch level.');
         return null;
     }
 
+    // Define the query to filter by object name "Module" without the level check
     const query = `
-    {
+    query {
         event_user(where: { 
-            _and: [
-                { userId: { _eq: ${userId} } },
-                { level: { _neq: 0 } }
-            ]
-        }, order_by: { eventId: asc }) {
-            eventId
+            userId: { _eq: ${userId} }, 
+            event: { object: { name: { _eq: "Module" } } }
+        }) {
             level
         }
     }
@@ -64,23 +62,23 @@ export async function getEventIdAndLevel() {
     try {
         const response = await queryApi(query);
 
-        // Check if the response is valid and contains at least one event_user
+        // Check if the response is valid and contains event_user data
         if (!response || !response.event_user || response.event_user.length === 0) {
-            console.error('No eventId found for the specified criteria.');
+            console.error('No level found for the specified criteria.');
             return null;
         }
 
-        // Get the 2nd eventId and the corresponding level from the response
-        const eventId = parseInt(response.event_user[1].eventId, 10);
-        const level = response.event_user[1].level;
+        // Sum up all levels from the filtered events
+        const totalLevel = response.event_user.reduce((acc, curr) => acc + curr.level, 0);
 
-        return { eventId, level };
+        return totalLevel;
 
     } catch (error) {
-        console.error('Error fetching the event ID and level:', error);
+        console.error('Error fetching the total level:', error);
         return null;
     }
 }
+
 
 
 
@@ -110,60 +108,6 @@ export async function getUserInfo() {
     }
 }
 
-export async function getTotalXPWithLevel() {
-    const userId = getUserIdFromToken();
-
-    if (!userId) {
-        console.error('No user ID found. Unable to fetch XP.');
-        return null;
-    }
-
-    // Fetch the event ID and level dynamically using getEventIdAndLevel
-    const eventData = await getEventIdAndLevel();
-
-    if (!eventData) {
-        console.error('Failed to fetch event ID and level.');
-        return null;
-    }
-
-    const { eventId, level } = eventData;
-
-    const query = `
-    query {
-        transaction(where: { 
-            userId: { _eq: "${userId}" }, 
-            type: { _eq: "xp" },
-            eventId: { _eq: "${eventId}" }
-        }) {
-            amount
-        }
-    }
-    `;
-
-    try {
-        const transactions = await queryApi(query);
-
-        if (!transactions || !transactions.transaction) {
-            console.error('Failed to fetch transactions');
-            return null;
-        }
-
-        // Sum up all the amounts from the transactions filtered by the eventId
-        const totalXP = transactions.transaction.reduce((acc, curr) => acc + curr.amount, 0);
-
-        // Return an object containing both total XP and level
-        return {
-            xp: totalXP,
-            level: level
-        };
-
-    } catch (error) {
-        console.error('Error fetching transactions:', error);
-        return null;
-    }
-}
-
-
 
 
 // Function to get the monthly XP grouped by year and month
@@ -175,26 +119,16 @@ export async function getMonthlyXP() {
         return null;
     }
 
-    // Fetch the event ID using getEventIdAndLevel
-    const eventData = await getEventIdAndLevel();
-    
-    if (!eventData || eventData.eventId === undefined) {
-        console.error('Failed to fetch event ID.');
-        return null;
-    }
-
-    const { eventId } = eventData;
-
-    // Modify the query to include the eventId directly
+    // Define the query to filter by object name "Module" and type "xp"
     const query = `
     query {
-        transaction(where: { userId: { _eq: "${userId}" }, type: { _eq: "xp" }, eventId: { _eq: ${eventId} } }, order_by: { createdAt: asc }) {
+        transaction(where: { 
+            userId: { _eq: "${userId}" }, 
+            type: { _eq: "xp" }, 
+            event: { object: { name: { _eq: "Module" } } } 
+        }, order_by: { createdAt: asc }) {
             amount
             createdAt
-            userId
-            type
-            eventId
-            path
         }
     }
     `;
@@ -260,36 +194,39 @@ export async function getMonthlyXP() {
 
 
 export async function getAudits() {
-    const userId = getUserIdFromToken();
-
-    if (!userId) {
-        console.error('No user ID found. Unable to fetch audits.');
-        return [];
-    }
-
     const query = `
     query {
-        audit(where: { auditorId: { _eq: ${userId} } }) {
-            grade
+        user {
+            audits {
+                grade
+            }
         }
     }
     `;
 
-    const audits = await queryApi(query);
+    try {
+        const response = await queryApi(query);
 
-    // Update this condition to match the actual structure of the response
-    if (!audits || !audits.audit || !Array.isArray(audits.audit)) {
-        console.error('Failed to fetch audits or audits data is not an array');
+        // Check if the response structure matches the expected data
+        if (!response || !response.user || !Array.isArray(response.user) || response.user.length === 0) {
+            console.error('Failed to fetch audits or invalid user data structure');
+            return [];
+        }
+
+        // Process the grades into "pass" or "fail"
+        const audits = response.user.flatMap(user => user.audits || []);
+        const result = audits
+            .filter(audit => audit.grade !== null) // Exclude null grades
+            .map(audit => (audit.grade >= 1 ? "pass" : "fail"));
+
+        return result;
+
+    } catch (error) {
+        console.error('Error fetching audits:', error);
         return [];
     }
-
-    // Process the grades into "pass" or "fail"
-    const result = audits.audit
-        .filter(audit => audit.grade !== null) // Exclude null grades
-        .map(audit => (audit.grade >= 1 ? "pass" : "fail"));
-
-    return result;
 }
+
 
 
 export async function getSkills() {
