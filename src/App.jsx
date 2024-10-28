@@ -9,7 +9,8 @@ import { ConfigProvider } from 'antd';
 function App() {
     // Explicitly force '/' for localhost and use process.env.PUBLIC_URL for production
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const basename = isLocalhost ? '/' : process.env.PUBLIC_URL || '/';
+    const basename = isLocalhost ? '/' : '/graphql';
+
 
     return (
         <ConfigProvider theme={{ token: { colorPrimary: '#3687d9' } }}> 
